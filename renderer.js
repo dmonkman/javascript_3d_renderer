@@ -157,14 +157,11 @@ class Renderer {
 				//grd.addColorStop(0, "rgba(0, 0, 0, 1)");
 			//this.ctx.fillStyle = grd;
 			this.ctx.beginPath();
-			this.ctx.lineWidth = 2;
 			this.ctx.moveTo(tri.pclose.x, tri.pclose.y);
 			this.ctx.lineTo(tri.pmed.x, tri.pmed.y);
 			this.ctx.lineTo(tri.pfar.x, tri.pfar.y);
 			this.ctx.lineTo(tri.pclose.x, tri.pclose.y);
 			this.ctx.stroke();
-			this.ctx.fill();
-			this.ctx.fillRect(tri.pclose.x, tri.pclose.y, 2, 2);
 			draws++;
 		}
 		this.ctx.fillStyle = "#FFFFFF";
