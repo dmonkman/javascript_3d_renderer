@@ -6,7 +6,7 @@ $(document).ready(function(){
 	
 	var pixelData = 0;
 	
-	var renderer = new Renderer(ctx, canvasWidth, canvasHeight, [0, 2, -1], [0, 0, 1]);
+	var renderer = new Renderer(ctx, canvasWidth, canvasHeight, [0, 2, -10], [0, 0, 1]);
 	
 	const tickRate = 120;				// Ticks per second
 	const tickTime = 1000/tickRate;		// Time per tick in ms
