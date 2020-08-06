@@ -1,3 +1,5 @@
+//By Drayton Monkman, June 2020
+
 $(document).ready(function(){
 	var canvas = $("#screen");
 	var ctx = canvas.get(0).getContext("2d");
@@ -212,4 +214,3 @@ $(document).ready(function(){
 	return;
 });
 
-//by Drayton Monkman, January 2016
