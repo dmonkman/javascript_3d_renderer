@@ -10,10 +10,10 @@ $(document).ready(function(){
 	
 	var renderer = new Renderer(ctx, canvasWidth, canvasHeight, [0, 2, -10], [0, 0, 1]);
 	
-	const tickRate = 120;				// Ticks per second
-	const tickTime = 1000/tickRate;		// Time per tick in ms
-	var frameRate = 60;					// Frames per second cap 
-	var frameTime = 1000/frameRate; 	// ms per frame 
+	const tickRate = 120;	
+	const tickTime = 1000/tickRate;	
+	var frameRate = 60;			
+	var frameTime = 1000/frameRate; 
 	var tFrameStart = 0;
 	var tFrameEnd= 0;
 	var tTickStart = 0;
@@ -68,15 +68,17 @@ $(document).ready(function(){
 		Z: 90,
 	};
 	
-	document.onkeydown = function(event){	// Detect when the user presses a key
+	// Detect when the user presses a key
+	document.onkeydown = function(event){	
 		KeyDown[event.keyCode] = true;
 	};
-
-	document.onkeyup = function(event){		// Detect when the user lifts off of a key
+	
+	// Detect when the user lifts off of a key
+	document.onkeyup = function(event){		
 		KeyDown[event.keyCode] = false;
 	};
 	
-	// Initialize
+	// Initialize what we want to draw
 	for(var i = 0; i < 256; i++){
 		KeyDown[i] = false;
 	}
@@ -106,7 +108,7 @@ $(document).ready(function(){
 		}
 		//console.log(teapotMesh.faces);
     }
-	
+	// Handle all key inputs
 	function Input(){
 		if(KeyDown[Keys.W]){
 			renderer.pos.addAssign(renderer.dir.scale(0.1));
@@ -140,15 +142,18 @@ $(document).ready(function(){
 		}
 	}
 	
+	// Handle all changes to the environment that do not result from input
 	function Engine(){
 		cube1.rotate(-0.01, new Vector3D(1,1,0));
 	}
-
+	
+	// Draw objects and text to the screen
 	function Render(){
 		ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 		ctx.fillStyle = "#FFFFFF";
 		ctx.strokeStyle = "#FFFFFF";
 		
+		// Display the current camera position and viewing direction
 		ctx.fillText("Position: " + renderer.pos.x + ", " + renderer.pos.y + ", " + renderer.pos.z, 10, 20);
 		ctx.fillText(renderer.pos.y, 10, 30);
 		ctx.fillText(renderer.pos.z, 10, 40);
@@ -158,15 +163,6 @@ $(document).ready(function(){
 		ctx.fillText(Keys.W, 10, 80);
 		ctx.fillText(KeyDown[Keys.W], 10, 90);
 
-		ctx.beginPath();
-		ctx.arc(200+V1.x*100, 200+V1.y*100, 20/V1.z, 0, 2 * Math.PI);
-		ctx.stroke();
-		ctx.beginPath();
-		ctx.moveTo(0,665);
-		ctx.lineTo(999,665);
-		ctx.lineTo(999,0);
-		ctx.stroke();
-		
 		// Draw the x,y,z axis
 		ctx.strokeStyle = "#FF0000";
 		renderer.drawLine(new Vector3D(0, 0, 0), new Vector3D(50000, 0, 0));
@@ -176,27 +172,37 @@ $(document).ready(function(){
 		renderer.drawLine(new Vector3D(0, 0, 0), new Vector3D(0, 0, 50000));
 		ctx.strokeStyle = "#FFFFFF";
 		
+		// Queue all cubes to be rendered
 		for(var i = 0; i < cubes.length; i++){
 			cubes[i].draw(renderer);
 		}	
+		
+		// Queue all meshes to be rendered (in this case only the teapot)
 		renderer.renderMesh(teapotMesh);
+		
+		// Draw all previously queued objects to be rendered
 		renderer.renderTriangles();
 		renderer.renderTriangles2D();
 		renderer.ctx.fillText(renderer.triangleQueue.length, 10, 200);
 	};
 	
 	function main(){
-		tTickEnd = performance.now();						// Start time of the new tick and end of the previous tick
-		tSinceLastFrame += tTickEnd - tTickStart;			// Add time since last frame
+		// Start time of the new tick and end of the previous tick
+		tTickEnd = performance.now();		
+		
+		// Add time since last frame
+		tSinceLastFrame += tTickEnd - tTickStart;			
 		tTickStart = tTickEnd;
 		
-		Input();											// Poll for user input
-		Engine();											// Perform calculations and actions within the engine
+		Input();				// Poll for user input
+		Engine();				// Perform calculations and actions within the engine
+		
+		// Draw a new frame if enough time has passed
 		if(tSinceLastFrame >= frameTime)
 		{
 			tSinceLastFrame -= frameTime;
 			Render();
-			tFrameEnd = performance.now();					// End time of the frame
+			tFrameEnd = performance.now();		// End time of the frame
 			prevFrameTime = tFrameEnd - tFrameStart;
 			ctx.fillText("Time since last frame: " + prevFrameTime, 10, 160);
 			ctx.fillText("Frame rate: " + 1000/Math.round(prevFrameTime), 10, 10);
