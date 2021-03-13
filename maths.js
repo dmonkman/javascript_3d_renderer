@@ -4,6 +4,7 @@ class Vector3D {
 		this.y = y;
 		this.z = z;
 	}
+
 	integerize(){
 		this.x = parseInt(this.x);
 		this.y = parseInt(this.y);
@@ -69,47 +70,95 @@ class Vector3D {
 	
 	rotate(angleRads, axis){
 		if(angleRads != 0){	
-			axis.dir.normalize();
-			this.x -= axis.pos.x;
-			this.y -= axis.pos.y;
-			this.z -= axis.pos.z;
+			axis.direction.normalize();
+			this.x -= axis.position.x;
+			this.y -= axis.position.y;
+			this.z -= axis.position.z;
 			var sinAngle = Math.sin(angleRads/2);
-			var Q = new Quaternion(Math.cos(angleRads/2), sinAngle*axis.dir.x, sinAngle*axis.dir.y, sinAngle*axis.dir.z);
+			var Q = new Quaternion(Math.cos(angleRads/2), sinAngle*axis.direction.x, sinAngle*axis.direction.y, sinAngle*axis.direction.z);
 			var Qconj = Q.Qconjugate();
 			Q.Vmul(this);
 			Q.Qmul(Qconj);
 			this.x = Q.x;
 			this.y = Q.y;
 			this.z = Q.z;
-			this.x += axis.pos.x;
-			this.y += axis.pos.y;
-			this.z += axis.pos.z;
+			this.x += axis.position.x;
+			this.y += axis.position.y;
+			this.z += axis.position.z;
 		}
 		return this;
+	}
+
+	rotate_origin(angleRads, v){
+		// Rotate about a vector pointing from the origin
+		if(angleRads != 0){	
+			v.normalize();
+			var sinAngle = Math.sin(angleRads/2);
+			var Q = new Quaternion(Math.cos(angleRads/2), sinAngle*v.x, sinAngle*v.y, sinAngle*v.z);
+			var Qconj = Q.Qconjugate();
+			Q.Vmul(this);
+			Q.Qmul(Qconj);
+			this.x = Q.x;
+			this.y = Q.y;
+			this.z = Q.z;
+		}
+		return this;
+	}
+
+	matMul(m) {
+		v = new Vector3D();
+		v.x = i.x * m.m[0][0] + i.y * m.m[1][0] + i.z * m.m[2][0] + i.w * m.m[3][0];
+		v.y = i.x * m.m[0][1] + i.y * m.m[1][1] + i.z * m.m[2][1] + i.w * m.m[3][1];
+		v.z = i.x * m.m[0][2] + i.y * m.m[1][2] + i.z * m.m[2][2] + i.w * m.m[3][2];
+		v.w = i.x * m.m[0][3] + i.y * m.m[1][3] + i.z * m.m[2][3] + i.w * m.m[3][3];
+		return v;
+	}
+
+	matMulAssign(m) {
+		this.x = i.x * m.m[0][0] + i.y * m.m[1][0] + i.z * m.m[2][0] + i.w * m.m[3][0];
+		this.y = i.x * m.m[0][1] + i.y * m.m[1][1] + i.z * m.m[2][1] + i.w * m.m[3][1];
+		this.z = i.x * m.m[0][2] + i.y * m.m[1][2] + i.z * m.m[2][2] + i.w * m.m[3][2];
+		this.w = i.x * m.m[0][3] + i.y * m.m[1][3] + i.z * m.m[2][3] + i.w * m.m[3][3];
+	}
+}
+
+class Mat4x4 {
+	constructor(){
+		this.m = new Array();
+		for(var i = 0; i < 4; i++){
+			this.m[i] = [];
+		}
 	}
 }
 
 class Axis {
 	constructor(px, py, pz, vx, vy, vz){
-		this.pos = new Vector3D(px, py, pz);
-		this.dir = new Vector3D(vx, vy, vz);
+		this.position = new Vector3D(px, py, pz);
+		this.direction = new Vector3D(vx, vy, vz);
 	}
 }
 
 class Quaternion {
-	constructor(w, x, y, z){
+	constructor(w=1, x=0, y=0, z=0){
 		this.w = w;
 		this.x = x;
 		this.y = y;
 		this.z = z;
 	}
+	set(theta, v){
+		v.scale(Math.sin(theta/2))
+		this.w = Math.cos(theta/2)
+		this.x = v.x
+		this.y = v.y
+		this.z = v.z
+	}
 	normalize(){
 		var length = this.length();
 		if(length != 1){
-		this.w /= length;
-		this.x /= length;
-		this.y /= length;
-		this.z /= length;
+			this.w /= length;
+			this.x /= length;
+			this.y /= length;
+			this.z /= length;
 		}
 	}
 	length(){
@@ -140,9 +189,104 @@ class Quaternion {
 	}
 }
 
-class Mat4x4 {
-	constructor(){
-		this.m = [4][4];
-		this.m = 0;
-	}
+
+// STANDALONE ALGEBRA FUNCTIONS
+function Matrix_MultiplyVector(m, i)
+{
+    var v = new Vector3D();
+    v.x = i.x * m.m[0][0] + i.y * m.m[1][0] + i.z * m.m[2][0] + i.w * m.m[3][0];
+    v.y = i.x * m.m[0][1] + i.y * m.m[1][1] + i.z * m.m[2][1] + i.w * m.m[3][1];
+    v.z = i.x * m.m[0][2] + i.y * m.m[1][2] + i.z * m.m[2][2] + i.w * m.m[3][2];
+    v.w = i.x * m.m[0][3] + i.y * m.m[1][3] + i.z * m.m[2][3] + i.w * m.m[3][3];
+    return v;
+}
+
+function Matrix_MultiplyMatrix(m1, m2)
+{
+    var matrix = new Mat4x4();
+    for (var c = 0; c < 4; c++)
+        for (var r = 0; r < 4; r++)
+            matrix.m[r][c] = m1.m[r][0] * m2.m[0][c] + m1.m[r][1] * m2.m[1][c] + m1.m[r][2] * m2.m[2][c] + m1.m[r][3] * m2.m[3][c];
+    return matrix;
+}
+
+function Quaternion_Mul_Q(q1, q2){
+	var w_ = q1.w*q2.w - q1.x*q2.x - q1.y*q2.y - q1.z*q2.z;
+	var x_ = q1.w*q2.x + q1.x*q2.w + q1.y*q2.z - q1.z*q2.y;
+	var y_ = q1.w*q2.y - q1.x*q2.z + q1.y*q2.w + q1.z*q2.x;
+	var z_ = q1.w*q2.z + q1.x*q2.y - q1.y*q2.x + q1.z*q2.w;
+	return new Quaternion(w_, x_, y_, z_)
+}
+
+function Quaternion_Mul_V(q, v){
+	var w_ = -q.x*v.x - q.y*v.y - q.z*v.z;
+	var x_ = q.w*v.x + q.y*v.z - q.z*v.y;
+	var y_ = q.w*v.y - q.x*v.z + q.z*v.x;
+	var z_ = q.w*v.z + q.x*v.y - q.y*v.x;
+	return new Quaternion(w_, x_, y_, z_)
+}
+
+function Quaternion_Mul_Q_V(q1, q2){
+	//var w_ = q1.w*q2.w - q1.x*q2.x - q1.y*q2.y - q1.z*q2.z;
+	var x_ = q1.w*q2.x + q1.x*q2.w + q1.y*q2.z - q1.z*q2.y;
+	var y_ = q1.w*q2.y - q1.x*q2.z + q1.y*q2.w + q1.z*q2.x;
+	var z_ = q1.w*q2.z + q1.x*q2.y - q1.y*q2.x + q1.z*q2.w;
+	return new Vector3D(x_, y_, z_)
+}
+
+function Vector_Add(v1, v2)
+{
+    return new Vector3D(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z);
+}
+
+function Vector_Sub(v1, v2)
+{
+    return new Vector3D(v1.x - v2.x, v1.y - v2.y, v1.z - v2.z);
+}
+
+function Vector_Scale(v1, k)
+{
+    return new Vector3D(v1.x * k, v1.y * k, v1.z * k );
+}
+
+function Vector_Div(v1, k)
+{
+    return new Vector3D(v1.x / k, v1.y / k, v1.z / k );
+}
+
+function Vector_DotProduct(v1, v2)
+{
+    return v1.x*v2.x + v1.y*v2.y + v1.z * v2.z;
+}
+
+function Vector_Length(v)
+{
+    return Math.sqrt(Vector_DotProduct(v, v));
+}
+
+function Vector_Normalize(v)
+{
+    l = Vector_Length(v);
+    return new Vector3D(v.x / l, v.y / l, v.z / l );
+}
+
+function Vector_CrossProduct(v1, v2)
+{
+    v = new Vector3D();
+    v.x = v1.y * v2.z - v1.z * v2.y;
+    v.y = v1.z * v2.x - v1.x * v2.z;
+    v.z = v1.x * v2.y - v1.y * v2.x;
+    return v;
+}
+
+function Vector_IntersectPlane(plane_p, plane_n, lineStart, lineEnd)
+{
+    var plane_n = Vector_Normalize(plane_n);
+    var plane_d = -Vector_DotProduct(plane_n, plane_p);
+    var ad = Vector_DotProduct(lineStart, plane_n);
+    var bd = Vector_DotProduct(lineEnd, plane_n);
+    var t = (-plane_d - ad) / (bd - ad);
+    lineStartToEnd = Vector_Sub(lineEnd, lineStart);
+    lineToIntersect = Vector_Scale(lineStartToEnd, t);
+    return Vector_Add(lineStart, lineToIntersect);
 }

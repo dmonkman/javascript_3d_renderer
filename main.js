@@ -5,12 +5,13 @@ $(document).ready(function(){
 	var ctx = canvas.get(0).getContext("2d");
 	canvasWidth=canvas.width();
 	canvasHeight=canvas.height();
+
+	var position = new Vector3D(0, 0, 1);
+	var direction = new Vector3D(0, 0, 1);
 	
-	var pixelData = 0;
+	var camera = new Camera(ctx, canvasWidth, canvasHeight, [0, 2, -10], [0, 0, 1], [0, 1, 0]);
 	
-	var renderer = new Renderer(ctx, canvasWidth, canvasHeight, [0, 2, -10], [0, 0, 1]);
-	
-	const tickRate = 120;	
+	const tickRate = 10;	
 	const tickTime = 1000/tickRate;	
 	var frameRate = 60;			
 	var frameTime = 1000/frameRate; 
@@ -23,10 +24,8 @@ $(document).ready(function(){
 	
 	var ticks = 0;
 	var frames = 0;
-	
-	var position = new Vector3D(0, 0, 1);
-	var direction = new Vector3D(0, 0, 1);
-	
+	var printTris = false;
+
 	var KeyDown = [];
 
 	const Keys = {
@@ -78,115 +77,159 @@ $(document).ready(function(){
 		KeyDown[event.keyCode] = false;
 	};
 	
-	// Initialize what we want to draw
+	// Initialize keys
 	for(var i = 0; i < 256; i++){
 		KeyDown[i] = false;
 	}
-	var V1 = new Vector3D(2,4,0);
-	var cube = new Cube(new Vector3D(0, 0, 6));
-	var matrix = new Mat4x4();
-	var myVar = 0;
-	var cubes = [];
-	for(var i = 0; i < 8; i++){
-		for(var j = 0; j < 8; j++){
-			cubes.push(new Cube(i, 0, j, 1));
-		}
-	}
-	cube1 = new Cube(1, 1, 6, 10);	
-	cube2 = new Cube(5, 5, 7, 5);	
-	var teapotMesh = new Mesh();
+	gameObjects = [];
+	this.print = false;
+	// Load assets required for the program
 	function Load(){
-		var line = [];
-		for(var i = 0; i < teapotobj.length; i++){
-			line = teapotobj[i].split(' ');
-			if(line[0] == 'v'){
-				teapotMesh.vertices.push(new Vector3D(parseFloat(line[1]), parseFloat(line[2]), parseFloat(line[3])));
-			}
-			else if(line[0] == 'f'){
-				teapotMesh.faces.push(new Array(parseInt(line[1])-1, parseInt(line[2])-1, parseInt(line[3])-1));
-			}
+
+
+		// Greate a large cube
+		gameObjects.push(new Cube(-50, -100, 100, 100));
+
+
+		// Create some cube game objects to represent the x, y, z axes
+		gameObjects.push(new Cube(0, 0, 0, 1));
+		for(var i = 1; i < 6; i++){
+			gameObjects.push(new Cube(0, 0, i, 1));
+			gameObjects.push(new Cube(i, 0, 0, 1));
+			gameObjects.push(new Cube(0, i, 0, 1));
 		}
-		//console.log(teapotMesh.faces);
+
+		// Load a plane at y = -100
+		gameObjects.push(new Plane(-500, -10, -500, 1000, color = "#000088"))
+		
+		// Load the teapot game object
+		gameObjects.push(new GameObject(5, 1, 5, teapotobj))
     }
 	// Handle all key inputs
 	function Input(){
+		if(KeyDown[Keys.Z]){
+			// Reset camera vectors using the rotation Quaternion 
+			var Q = camera.rotation
+			camera.direction.rotate_origin(2*Math.acos(Q.w), new Vector3D(Q.x, Q.y, Q.z))
+			camera.up.rotate_origin(2*Math.acos(Q.w), new Vector3D(Q.x, Q.y, Q.z))
+			camera.right.rotate_origin(2*Math.acos(Q.w), new Vector3D(Q.x, Q.y, Q.z))
+			camera.rotation = new Quaternion()
+		}
 		if(KeyDown[Keys.W]){
-			renderer.pos.addAssign(renderer.dir.scale(0.1));
+			camera.position.addAssign(camera.direction.scale(0.2));
 		}
 		if(KeyDown[Keys.S]){
-			renderer.pos.subAssign(renderer.dir.scale(0.1));
+			camera.position.subAssign(camera.direction.scale(0.2));
 		}
 		if(KeyDown[Keys.A]){
-			renderer.pos.addAssign(renderer.dir.scale(0.1).crossProduct(new Vector3D(0, 1, 0)));
+			camera.position.addAssign(camera.right.scale(-0.2));
 		}
 		if(KeyDown[Keys.D]){
-			renderer.pos.subAssign(renderer.dir.scale(0.1).crossProduct(new Vector3D(0, 1, 0)));
+			camera.position.subAssign(camera.right.scale(-0.2));
 		}
 		if(KeyDown[Keys.ONE]){
-			renderer.dir.rotate(-0.01, new Axis(0, 0, 0, 0, 1, 0));
-			renderer.dir.normalize();
+			camera.yaw(-0.02)
 		}
 		if(KeyDown[Keys.TWO]){
-			renderer.dir.rotate(+0.01, new Axis(0, 0, 0, 0, 1, 0));
-			renderer.dir.normalize();
+			camera.yaw(0.02)
+		}
+		if(KeyDown[Keys.E]){
+			camera.roll(-0.02)
+		}
+		if(KeyDown[Keys.Q]){
+			camera.roll(0.02)
+		}
+		if(KeyDown[Keys.R]){
+			camera.pitch(0.02)
+		}
+		if(KeyDown[Keys.F]){
+			camera.pitch(-0.02)
 		}
 		if(KeyDown[Keys.THREE]){
-			renderer.FOV -= 0.01;
-			renderer.FOV = Math.max(renderer.FOV, Math.PI/6);
-			renderer.invTanFOV = 1/Math.tan(renderer.FOV/2);
+			//printTris = true;
+			
+			camera.FOV -= 0.01;
+			camera.FOV = Math.max(camera.FOV, Math.PI/6);
+			camera.invTanFOV = 1/Math.tan(camera.FOV/2);
+			
 		}
 		if(KeyDown[Keys.FOUR]){
-			renderer.FOV += 0.01;
-			renderer.FOV = Math.min(renderer.FOV, 5*Math.PI/6);
-			renderer.invTanFOV = 1/Math.tan(renderer.FOV/2);
+			
+			camera.FOV += 0.01;
+			camera.FOV = Math.min(camera.FOV, 5*Math.PI/6);
+			camera.invTanFOV = 1/Math.tan(camera.FOV/2);
+		}
+		if(KeyDown[Keys.FIVE]){
+			camera.DEBUG = false;
+		}
+		if(KeyDown[Keys.SIX]){
+			camera.DEBUG = true;
+		}
+		if(KeyDown[Keys.G]){
+			console.log(true)
+			printTris = true;
 		}
 	}
 	
 	// Handle all changes to the environment that do not result from input
 	function Engine(){
-		cube1.rotate(-0.01, new Vector3D(1,1,0));
+		//cube1.rotate(-0.01, new Vector3D(1,1,0));
+		
 	}
 	
 	// Draw objects and text to the screen
 	function Render(){
+
+		//Fill the backgrounds
+		//camera.position.addAssign(camera.direction)
 		ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 		ctx.fillStyle = "#FFFFFF";
 		ctx.strokeStyle = "#FFFFFF";
-		
-		// Display the current camera position and viewing direction
-		ctx.fillText("Position: " + renderer.pos.x + ", " + renderer.pos.y + ", " + renderer.pos.z, 10, 20);
-		ctx.fillText(renderer.pos.y, 10, 30);
-		ctx.fillText(renderer.pos.z, 10, 40);
-		ctx.fillText(renderer.dir.x, 10, 50);
-		ctx.fillText(renderer.dir.y, 10, 60);
-		ctx.fillText(renderer.dir.z, 10, 70);
-		ctx.fillText(Keys.W, 10, 80);
-		ctx.fillText(KeyDown[Keys.W], 10, 90);
+		var grd = ctx.createLinearGradient(canvasWidth/2, canvasHeight, canvasWidth/2, 0);
+		grd.addColorStop(1, '#8888DD');
+		grd.addColorStop(0, "white");
+		ctx.fillStyle = grd;
+
+
+		ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+		/*
+		var grd = ctx.createLinearGradient(canvasWidth/2, canvasHeight/2, canvasWidth/2, canvasHeight);
+		grd.addColorStop(1, '#0000FF');
+		grd.addColorStop(0, "#4444EE");
+		ctx.fillStyle = grd;
+		ctx.fillRect(0, canvasHeight/2, canvasWidth, canvasHeight);*/
 
 		// Draw the x,y,z axis
-		ctx.strokeStyle = "#FF0000";
-		renderer.drawLine(new Vector3D(0, 0, 0), new Vector3D(50000, 0, 0));
-		ctx.strokeStyle = "#00FF00";
-		renderer.drawLine(new Vector3D(0, 0, 0), new Vector3D(0, 50000, 0));
-		ctx.strokeStyle = "#0000FF";
-		renderer.drawLine(new Vector3D(0, 0, 0), new Vector3D(0, 0, 50000));
-		ctx.strokeStyle = "#FFFFFF";
+		//ctx.strokeStyle = "#FF0000";
+		//camera.drawLine(new Vector3D(0, 0, 0), new Vector3D(50000, 0, 0));
+		//ctx.strokeStyle = "#00FF00";
+		//camera.drawLine(new Vector3D(0, 0, 0), new Vector3D(0, 50000, 0));
+		//ctx.strokeStyle = "#0000FF";
+		//camera.drawLine(new Vector3D(0, 0, 0), new Vector3D(0, 0, 50000));
+		//ctx.strokeStyle = "#FFFFFF";
 		
-		// Queue all cubes to be rendered
-		for(var i = 0; i < cubes.length; i++){
-			cubes[i].draw(renderer);
+		// Queue all game objects to be rendered
+		for(var i = 0; i < gameObjects.length; i++){
+			gameObjects[i].draw(camera);
 		}	
-		
-		// Queue all meshes to be rendered (in this case only the teapot)
-		renderer.renderMesh(teapotMesh);
-		
+
 		// Draw all previously queued objects to be rendered
-		renderer.renderTriangles();
-		renderer.renderTriangles2D();
-		renderer.ctx.fillText(renderer.triangleQueue.length, 10, 200);
+		camera.draw(printTris);
+		
+		// Display the current camera position and viewing direction
+		ctx.fillStyle = "#000000";
+		ctx.fillText("Position: x:" + camera.position.x.toFixed(3) + ", y:" + camera.position.y.toFixed(3) + ", z:" + camera.position.z.toFixed(3), 10, 20);
+		ctx.fillText("Direction: x:" + camera.direction.x.toFixed(3) + ", y:" + camera.direction.y.toFixed(3) + ", z:" + camera.direction.z.toFixed(3), 10, 30);
+		ctx.fillText("Up: x:" + camera.up.x.toFixed(3) + ", y:" + camera.up.y.toFixed(3) + ", z:" + camera.up.z.toFixed(3), 10, 40);
+		ctx.fillText("Right: x:" + camera.right.x.toFixed(3) + ", y:" + camera.right.y.toFixed(3) + ", z:" + camera.right.z.toFixed(3), 10, 50);
+		ctx.fillText("Rotation: w:" + camera.rotation.w.toFixed(3) + ", x:" + camera.rotation.x.toFixed(3) + ", y:" +camera.rotation.y.toFixed(3) + ", z:" + camera.rotation.z.toFixed(3), 10, 70)
+
+		//camera.renderTriangles2D();
+		camera.ctx.fillText(camera.triangleQueue.length, 10, 200);
 	};
 	
 	function main(){
+
 		// Start time of the new tick and end of the previous tick
 		tTickEnd = performance.now();		
 		
@@ -196,7 +239,7 @@ $(document).ready(function(){
 		
 		Input();				// Poll for user input
 		Engine();				// Perform calculations and actions within the engine
-		
+	
 		// Draw a new frame if enough time has passed
 		if(tSinceLastFrame >= frameTime)
 		{
@@ -204,17 +247,20 @@ $(document).ready(function(){
 			Render();
 			tFrameEnd = performance.now();		// End time of the frame
 			prevFrameTime = tFrameEnd - tFrameStart;
-			ctx.fillText("Time since last frame: " + prevFrameTime, 10, 160);
-			ctx.fillText("Frame rate: " + 1000/Math.round(prevFrameTime), 10, 10);
+			ctx.fillStyle = "#000000";
+			ctx.fillText("Time since last frame: " + prevFrameTime.toFixed(3), 10, 160);
+			ctx.fillText("Frame rate: " + (1000/prevFrameTime).toFixed(1), 10, 10);
 			tFrameStart = tFrameEnd;
 			frames++;
 		}
 		ticks++;
+		ctx.fillStyle = "#000000";
 		ctx.fillText("Ticks : " + ticks, 10, 100);
 		ctx.fillText("Frames : " + frames, 10, 110);
 		setTimeout(main, 0);
 		//setTimeout(main, tickTime-(performance.now()-tTickStart));
 	};
+	
 	Load();
 	main();
 	return;
